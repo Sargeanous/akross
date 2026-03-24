@@ -1,11 +1,32 @@
-import { Platform } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
 import { BLE } from '@proximity/shared';
 import { ClientTokenRotationManager } from '@proximity/protocol';
 import { PlaceholderBleScanner } from './ble-scanner';
 import { PlaceholderBleAdvertiser } from './ble-advertiser';
+import { NativeBleScanner, NativeBleAdvertiser } from './native';
 import { encountersApi, eventsApi } from '../api';
 import type { BleObservation } from '@proximity/shared';
-import type { RawBleDiscovery } from './types';
+import type { BleScanner, BleAdvertiser, RawBleDiscovery } from './types';
+
+/**
+ * Detect whether native BLE modules are available.
+ * Falls back to placeholder implementations for simulator/Expo Go.
+ */
+function createScanner(): BleScanner {
+  if (NativeModules.ProximityBleScanner) {
+    return new NativeBleScanner();
+  }
+  console.warn('[BLE] Native scanner not found — using placeholder');
+  return new PlaceholderBleScanner();
+}
+
+function createAdvertiser(): BleAdvertiser {
+  if (NativeModules.ProximityBleAdvertiser) {
+    return new NativeBleAdvertiser();
+  }
+  console.warn('[BLE] Native advertiser not found — using placeholder');
+  return new PlaceholderBleAdvertiser();
+}
 
 /**
  * ProximitySessionOrchestrator — coordinates the full BLE scanning session lifecycle.
@@ -20,8 +41,8 @@ import type { RawBleDiscovery } from './types';
  * 7. On session end: uploads all observations to the API for backend validation
  */
 export class ProximitySessionOrchestrator {
-  private scanner = new PlaceholderBleScanner();
-  private advertiser = new PlaceholderBleAdvertiser();
+  private scanner: BleScanner = createScanner();
+  private advertiser: BleAdvertiser = createAdvertiser();
   private tokenManager = new ClientTokenRotationManager();
   private observations: BleObservation[] = [];
   private unsubscribeDiscovery: (() => void) | null = null;
