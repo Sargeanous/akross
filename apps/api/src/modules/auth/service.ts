@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
-import { AUTH } from '@proximity/shared';
+import { AUTH, RATE_LIMITS } from '@proximity/shared';
+import { getRedis } from '../../config/redis.js';
 import { getPrisma } from '../../config/prisma.js';
 import { getEnv } from '../../config/env.js';
 import { getOtpProvider } from '../../providers/otp.js';
@@ -25,6 +26,17 @@ function generateSecureToken(): string {
 // ─── Service Functions ───────────────────────────────────────────────────────
 
 export async function requestOtp(target: string, method: AuthMethod) {
+  // Per-target OTP rate limiting
+  const redis = getRedis();
+  const rateLimitKey = `otp_rate:${target}`;
+  const count = await redis.incr(rateLimitKey);
+  if (count === 1) {
+    await redis.expire(rateLimitKey, 3600);
+  }
+  if (count > RATE_LIMITS.OTP_REQUEST_PER_HOUR) {
+    throw new OtpError('Too many OTP requests. Try again later.');
+  }
+
   const code = generateOtp();
   const expiresAt = new Date(Date.now() + AUTH.OTP_TTL_S * 1000);
 

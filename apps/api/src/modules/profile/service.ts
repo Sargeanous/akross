@@ -2,6 +2,7 @@ import { calculateAge, PROFILE } from '@proximity/shared';
 import { getPrisma } from '../../config/prisma.js';
 import { createPresignedUploadUrl } from '../../config/s3.js';
 import crypto from 'node:crypto';
+import { getModerationProvider } from '../../providers/moderation.js';
 
 const prisma = getPrisma();
 
@@ -86,6 +87,18 @@ export async function createPhotoUpload(userId: string, contentType: string) {
       position: profile.photos.length,
     },
   });
+
+  // Schedule background moderation (non-blocking)
+  getModerationProvider()
+    .checkPhoto(key)
+    .then((result) => {
+      if (!result.approved) {
+        console.warn(`Photo moderation flagged: ${key}`, result);
+      }
+    })
+    .catch((err) => {
+      console.error('Photo moderation check failed:', err);
+    });
 
   return { photo, uploadUrl };
 }
