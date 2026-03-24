@@ -71,7 +71,7 @@ export async function chatRoutes(app: FastifyInstance) {
     }
     wsConnections.get(userId)!.add(socket);
 
-    socket.on('message', (raw) => {
+    socket.on('message', (raw: Buffer | ArrayBuffer | Buffer[]) => {
       try {
         const data = JSON.parse(raw.toString());
         // Handle read receipts via WebSocket

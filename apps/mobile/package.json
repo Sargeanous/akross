@@ -7,8 +7,7 @@
     "dev": "expo start --dev-client",
     "build:ios": "eas build --platform ios",
     "build:android": "eas build --platform android",
-    "lint": "tsc --noEmit",
-    "test": "jest"
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@proximity/shared": "workspace:*",
@@ -22,6 +21,7 @@
     "expo-secure-store": "~14.0.0",
     "expo-status-bar": "~2.0.0",
     "react": "18.3.1",
+    "react-dom": "18.3.1",
     "react-native": "0.76.3",
     "react-native-gesture-handler": "~2.20.0",
     "react-native-reanimated": "~3.16.0",

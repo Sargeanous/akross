@@ -1,8 +1,8 @@
 import { Worker, Queue } from 'bullmq';
-import { getRedis } from '../config/redis.js';
+import { getRedisUrl } from '../config/redis.js';
 
 export const notificationQueue = new Queue('notification', {
-  connection: getRedis(),
+  connection: { url: getRedisUrl() },
 });
 
 /**
@@ -36,6 +36,6 @@ export function createNotificationWorker() {
 
       return { sent: false, reason: 'Push provider not configured (stub)' };
     },
-    { connection: getRedis() },
+    { connection: { url: getRedisUrl() } },
   );
 }

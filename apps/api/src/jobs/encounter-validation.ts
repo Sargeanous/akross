@@ -1,11 +1,11 @@
 import { Worker, Queue } from 'bullmq';
 import { getPrisma } from '../config/prisma.js';
-import { getRedis } from '../config/redis.js';
+import { getRedisUrl } from '../config/redis.js';
 import { findMutualEncounters } from '@proximity/protocol';
 import type { BleObservation } from '@proximity/shared';
 
 export const encounterValidationQueue = new Queue('encounter-validation', {
-  connection: getRedis(),
+  connection: { url: getRedisUrl() },
 });
 
 /**
@@ -106,6 +106,6 @@ export function createEncounterValidationWorker() {
 
       return { processedEncounters: encounters.length };
     },
-    { connection: getRedis() },
+    { connection: { url: getRedisUrl() } },
   );
 }

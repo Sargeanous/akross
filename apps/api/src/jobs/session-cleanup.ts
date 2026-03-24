@@ -1,9 +1,9 @@
 import { Worker, Queue } from 'bullmq';
 import { getPrisma } from '../config/prisma.js';
-import { getRedis } from '../config/redis.js';
+import { getRedisUrl } from '../config/redis.js';
 
 export const sessionCleanupQueue = new Queue('session-cleanup', {
-  connection: getRedis(),
+  connection: { url: getRedisUrl() },
 });
 
 /**
@@ -48,7 +48,7 @@ export function createSessionCleanupWorker() {
 
       return { endedEvents: endedEvents.length };
     },
-    { connection: getRedis() },
+    { connection: { url: getRedisUrl() } },
   );
 }
 

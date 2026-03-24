@@ -12,6 +12,11 @@ export function getRedis(): Redis {
   return _redis;
 }
 
+/** Return Redis URL for BullMQ connections (avoids ioredis version mismatch) */
+export function getRedisUrl(): string {
+  return getEnv().REDIS_URL;
+}
+
 export async function disconnectRedis(): Promise<void> {
   if (_redis) {
     await _redis.quit();
