@@ -23,4 +23,7 @@ config.resolver.nodeModulesPaths = [
 // pnpm uses symlinks — Metro must follow them
 config.resolver.unstable_enableSymlinks = true;
 
+// Allow Metro to resolve packages by walking up the directory tree (needed for pnpm)
+config.resolver.disableHierarchicalLookup = false;
+
 module.exports = config;
