@@ -1,0 +1,23 @@
+{
+  "name": "proximity-mvp",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @proximity/api dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "db:generate": "pnpm --filter @proximity/api db:generate",
+    "db:migrate": "pnpm --filter @proximity/api db:migrate",
+    "db:push": "pnpm --filter @proximity/api db:push",
+    "docker:up": "docker compose -f docker/docker-compose.yml up -d",
+    "docker:down": "docker compose -f docker/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.15.0"
+}
