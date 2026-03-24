@@ -33,6 +33,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'ACCESS_FINE_LOCATION',
     ],
   },
+  web: {
+    bundler: 'metro',
+    favicon: './assets/favicon.png',
+  },
   plugins: ['expo-router', 'expo-secure-store'],
   extra: {
     apiUrl: process.env.API_URL ?? 'http://localhost:3000',

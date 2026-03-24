@@ -1,6 +1,6 @@
 import { BLE, ENCOUNTER_QUALITY, computeAverageRssi, isWithinWindow } from '@proximity/shared';
 import type { BleObservation } from '@proximity/shared';
-import type { EncounterValidationInput, EncounterValidationResult } from './types.js';
+import type { EncounterValidationInput, EncounterValidationResult } from './types';
 
 /**
  * Core encounter validation algorithm.

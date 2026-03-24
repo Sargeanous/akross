@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AUTH, BLE, PROFILE, PAGINATION } from './constants.js';
+import { AUTH, BLE, PROFILE, PAGINATION } from './constants';
 
 // ─── Auth Schemas ────────────────────────────────────────────────────────────
 

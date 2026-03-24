@@ -1,6 +1,6 @@
 import type { BleObservation } from '@proximity/shared';
-import type { EncounterValidationInput, EncounterValidationResult } from './types.js';
-import { validateEncounter } from './encounter-validation.js';
+import type { EncounterValidationInput, EncounterValidationResult } from './types';
+import { validateEncounter } from './encounter-validation';
 
 interface SessionParticipant {
   userId: string;

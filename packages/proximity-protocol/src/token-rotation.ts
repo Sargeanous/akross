@@ -1,4 +1,4 @@
-import type { TokenRotationManager } from './types.js';
+import type { TokenRotationManager } from './types';
 
 /**
  * Client-side token rotation manager.
