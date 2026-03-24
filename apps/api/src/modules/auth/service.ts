@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { AUTH } from '@proximity/shared';
 import { getPrisma } from '../../config/prisma.js';
 import { getEnv } from '../../config/env.js';
+import { getOtpProvider } from '../../providers/otp.js';
 import type { AuthMethod } from '@prisma/client';
 
 const prisma = getPrisma();
@@ -21,20 +22,6 @@ function generateSecureToken(): string {
   return crypto.randomBytes(48).toString('base64url');
 }
 
-// ─── OTP Providers (stubbed) ─────────────────────────────────────────────────
-// In production, swap these out for Twilio / SendGrid / etc.
-
-async function sendSmsOtp(phone: string, code: string): Promise<void> {
-  // Stub: log to console in development
-  console.log(`[OTP-SMS] Sending code ${code} to ${phone}`);
-}
-
-async function sendEmailMagicLink(email: string, code: string): Promise<void> {
-  // Stub: log to console. In production, send an email with a deep link
-  // that includes the code as a query parameter.
-  console.log(`[OTP-EMAIL] Sending magic link code ${code} to ${email}`);
-}
-
 // ─── Service Functions ───────────────────────────────────────────────────────
 
 export async function requestOtp(target: string, method: AuthMethod) {
@@ -45,10 +32,11 @@ export async function requestOtp(target: string, method: AuthMethod) {
     data: { target, code, method, expiresAt },
   });
 
+  const otpProvider = getOtpProvider();
   if (method === 'PHONE') {
-    await sendSmsOtp(target, code);
+    await otpProvider.sendSms(target, code);
   } else {
-    await sendEmailMagicLink(target, code);
+    await otpProvider.sendEmail(target, code);
   }
 
   return { sent: true };

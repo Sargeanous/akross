@@ -32,11 +32,10 @@ export default function PhotosScreen() {
   };
 
   const handleNext = () => {
-    // Photos will be uploaded after profile creation (presigned URL flow)
-    // For now, just proceed with URIs stored locally
+    // Pass photo URIs to the bio screen — they'll be uploaded after profile creation
     router.push({
       pathname: '/(onboarding)/bio',
-      params: { ...params, photoCount: String(photos.length) },
+      params: { ...params, photoUris: JSON.stringify(photos) },
     });
   };
 

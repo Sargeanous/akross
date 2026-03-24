@@ -5,6 +5,7 @@ import { Input } from '../../src/components/ui/Input';
 import { Button } from '../../src/components/ui/Button';
 import { useProfileStore } from '../../src/stores/profile';
 import { PROFILE } from '@proximity/shared';
+import { uploadPhotosFromUris } from '../../src/utils/upload-photo';
 import type { Gender } from '@proximity/shared';
 
 export default function BioScreen() {
@@ -13,11 +14,14 @@ export default function BioScreen() {
     birthDate: string;
     gender: string;
     genderPreferences: string;
+    photoUris: string;
   }>();
   const { createProfile, isLoading, error } = useProfileStore();
   const [bio, setBio] = useState('');
+  const [uploadStatus, setUploadStatus] = useState('');
 
   const handleFinish = async () => {
+    // 1. Create the profile first
     await createProfile({
       displayName: params.displayName!,
       birthDate: params.birthDate!,
@@ -25,7 +29,15 @@ export default function BioScreen() {
       genderPreferences: (params.genderPreferences?.split(',') ?? []) as Gender[],
       bio: bio.trim() || undefined,
     });
-    // Profile store updates, root layout will detect isComplete and redirect to main
+
+    // 2. Upload photos via presigned URLs (profile must exist first)
+    const photoUris: string[] = params.photoUris ? JSON.parse(params.photoUris) : [];
+    if (photoUris.length > 0) {
+      setUploadStatus(`Uploading ${photoUris.length} photo${photoUris.length > 1 ? 's' : ''}...`);
+      await uploadPhotosFromUris(photoUris);
+      setUploadStatus('');
+    }
+    // Root layout will detect isComplete and redirect to main
   };
 
   return (

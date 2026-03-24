@@ -3,15 +3,12 @@ import { CreateEventSchema, UpdateEventSchema, UpdateReportSchema } from '@proxi
 import * as adminService from './service.js';
 
 /**
- * Admin routes. In production, add an admin role check middleware.
- * For the MVP, these routes are protected by the standard auth guard.
+ * Admin routes — protected by both auth and admin guard.
+ * Only users with isAdmin = true can access these endpoints.
  */
 export async function adminRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate);
-
-  // TODO: Add admin role verification middleware before production
-  // For now, all authenticated users can access admin routes.
-  // In production, check user.role === 'ADMIN' or similar.
+  app.addHook('preHandler', app.requireAdmin);
 
   // ─── Reports ─────────────────────────────────────────────────────────
 

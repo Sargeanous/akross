@@ -9,6 +9,7 @@ import { loadEnv } from './config/env.js';
 import { disconnectPrisma } from './config/prisma.js';
 import { disconnectRedis, getRedis } from './config/redis.js';
 import authPlugin from './plugins/auth.js';
+import adminGuardPlugin from './plugins/admin-guard.js';
 import { authRoutes } from './modules/auth/routes.js';
 import { profileRoutes } from './modules/profile/routes.js';
 import { eventRoutes } from './modules/event/routes.js';
@@ -44,6 +45,7 @@ async function bootstrap() {
 
   // ─── Auth plugin (decorates request with userId) ─────────────────────
   await app.register(authPlugin);
+  await app.register(adminGuardPlugin);
 
   // ─── Route modules ───────────────────────────────────────────────────
   await app.register(authRoutes, { prefix: '/auth' });
