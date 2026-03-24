@@ -78,6 +78,36 @@ export async function profileRoutes(app: FastifyInstance) {
     }
   });
 
+  // POST /profile/device-token — register a push notification device token
+  app.post('/device-token', async (request, reply) => {
+    const { token, platform } = request.body as { token?: string; platform?: string };
+    if (!token || !platform) {
+      return reply.code(400).send({ error: 'token and platform are required' });
+    }
+    if (platform !== 'IOS' && platform !== 'ANDROID') {
+      return reply.code(400).send({ error: 'platform must be IOS or ANDROID' });
+    }
+    try {
+      const result = await profileService.registerDeviceToken(request.userId, token, platform);
+      return reply.send(result);
+    } catch (err) {
+      if (err instanceof profileService.ProfileError) {
+        return reply.code(400).send({ error: err.message });
+      }
+      throw err;
+    }
+  });
+
+  // DELETE /profile/device-token — unregister device token (e.g. on logout)
+  app.delete('/device-token', async (request, reply) => {
+    const { token } = request.body as { token?: string };
+    if (!token) {
+      return reply.code(400).send({ error: 'token is required' });
+    }
+    await profileService.removeDeviceToken(request.userId, token);
+    return reply.send({ removed: true });
+  });
+
   // GET /profile/:id — get another user's profile (encounter-gated)
   app.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };

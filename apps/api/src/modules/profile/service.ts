@@ -158,6 +158,28 @@ function extensionFromMime(mime: string): string {
   return map[mime] || 'jpg';
 }
 
+// ─── Device Token Management ────────────────────────────────────────────────
+
+export async function registerDeviceToken(
+  userId: string,
+  token: string,
+  platform: 'IOS' | 'ANDROID',
+) {
+  // Upsert: if token already exists (maybe for a different user after logout/login), reassign it
+  const deviceToken = await prisma.deviceToken.upsert({
+    where: { token },
+    create: { userId, token, platform },
+    update: { userId, platform },
+  });
+  return { id: deviceToken.id, registered: true };
+}
+
+export async function removeDeviceToken(userId: string, token: string) {
+  await prisma.deviceToken.deleteMany({
+    where: { userId, token },
+  });
+}
+
 export class ProfileError extends Error {
   constructor(message: string) {
     super(message);

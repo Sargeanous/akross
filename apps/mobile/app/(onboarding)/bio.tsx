@@ -66,10 +66,14 @@ export default function BioScreen() {
           {bio.length}/{PROFILE.MAX_BIO_LENGTH}
         </Text>
 
+        {uploadStatus ? (
+          <Text style={styles.uploadStatus}>{uploadStatus}</Text>
+        ) : null}
+
         <Button
           title="Complete Profile"
           onPress={handleFinish}
-          loading={isLoading}
+          loading={isLoading || !!uploadStatus}
           size="lg"
         />
 
@@ -97,4 +101,5 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: '#888', marginBottom: 32 },
   bioInput: { height: 120, textAlignVertical: 'top' },
   charCount: { fontSize: 12, color: '#999', textAlign: 'right', marginBottom: 24 },
+  uploadStatus: { fontSize: 14, color: '#FF6B6B', textAlign: 'center', marginBottom: 12 },
 });
