@@ -1,0 +1,423 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum AuthMethod {
+  PHONE
+  EMAIL
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  OTHER
+}
+
+enum EventStatus {
+  DRAFT
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+enum EncounterQuality {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum SwipeDirection {
+  LIKE
+  PASS
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  SYSTEM
+}
+
+enum ReportReason {
+  HARASSMENT
+  SPAM
+  FAKE_PROFILE
+  INAPPROPRIATE_CONTENT
+  UNDERAGE
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum SubscriptionTier {
+  FREE
+  PLUS
+  PREMIUM
+}
+
+enum SubscriptionProvider {
+  APPLE
+  GOOGLE
+  STRIPE
+}
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+
+model User {
+  id         String     @id @default(uuid())
+  phone      String?    @unique
+  email      String?    @unique
+  authMethod AuthMethod
+  isVerified Boolean    @default(false)
+  isBanned   Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  profile           Profile?
+  refreshTokens     RefreshToken[]
+  proximitySessions ProximitySession[]
+  proximityTokens   ProximityTokenRecord[]
+  encountersAsA     Encounter[]       @relation("EncounterUserA")
+  encountersAsB     Encounter[]       @relation("EncounterUserB")
+  swipes            Swipe[]
+  matchesAsA        Match[]           @relation("MatchUserA")
+  matchesAsB        Match[]           @relation("MatchUserB")
+  chatThreadsAsA    ChatThread[]      @relation("ChatThreadUserA")
+  chatThreadsAsB    ChatThread[]      @relation("ChatThreadUserB")
+  sentMessages      Message[]
+  reportsFiled      Report[]          @relation("ReportReporter")
+  reportsReceived   Report[]          @relation("ReportReported")
+  reportsModerated  Report[]          @relation("ReportModerator")
+  blocksInitiated   Block[]           @relation("BlockBlocker")
+  blocksReceived    Block[]           @relation("BlockBlocked")
+  subscription      Subscription?
+  createdEvents     ProximityEvent[]
+
+  @@map("users")
+}
+
+model OtpCode {
+  id        String     @id @default(uuid())
+  target    String // phone number or email
+  code      String
+  method    AuthMethod
+  attempts  Int        @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime   @default(now())
+
+  @@index([target, method])
+  @@map("otp_codes")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ─── Profile ─────────────────────────────────────────────────────────────────
+
+model Profile {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  displayName       String
+  birthDate         DateTime
+  gender            Gender
+  genderPreferences Gender[]
+  bio               String?
+  isComplete        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photos ProfilePhoto[]
+
+  @@map("profiles")
+}
+
+model ProfilePhoto {
+  id         String   @id @default(uuid())
+  profileId  String
+  url        String
+  position   Int
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("profile_photos")
+}
+
+// ─── Proximity / Events ──────────────────────────────────────────────────────
+
+model ProximityEvent {
+  id               String      @id @default(uuid())
+  name             String
+  description      String?
+  venueName        String
+  latitude         Float
+  longitude        Float
+  startsAt         DateTime
+  endsAt           DateTime
+  status           EventStatus @default(DRAFT)
+  maxParticipants  Int?
+  createdById      String
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  createdBy  User               @relation(fields: [createdById], references: [id])
+  sessions   ProximitySession[]
+  encounters Encounter[]
+
+  @@index([status, startsAt])
+  @@index([createdById])
+  @@map("proximity_events")
+}
+
+model ProximitySession {
+  id        String    @id @default(uuid())
+  userId    String
+  eventId   String
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  isActive  Boolean   @default(true)
+
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event              ProximityEvent         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tokens             ProximityTokenRecord[]
+  observationUploads ObservationUpload[]
+  encountersAsA      Encounter[]            @relation("EncounterSessionA")
+  encountersAsB      Encounter[]            @relation("EncounterSessionB")
+
+  @@unique([userId, eventId])
+  @@index([eventId, isActive])
+  @@map("proximity_sessions")
+}
+
+/// Maps backend-issued BLE tokens back to users and time windows.
+/// When a device scans a token, the backend can look up who was advertising it.
+model ProximityTokenRecord {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  sessionId String
+  issuedAt  DateTime @default(now())
+  expiresAt DateTime
+
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session ProximitySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sessionId])
+  @@index([token])
+  @@map("proximity_token_records")
+}
+
+model ObservationUpload {
+  id           String    @id @default(uuid())
+  sessionId    String
+  platform     String
+  osVersion    String
+  observations Json // Array of BleObservation
+  processedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  session ProximitySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([processedAt])
+  @@map("observation_uploads")
+}
+
+// ─── Encounters ──────────────────────────────────────────────────────────────
+
+/// A verified mutual encounter between two users at an event.
+/// Created only after the backend validates BLE observations from both sides.
+/// The occurredAt timestamp is rounded to the nearest minute for privacy.
+model Encounter {
+  id         String           @id @default(uuid())
+  userAId    String
+  userBId    String
+  eventId    String
+  sessionAId String
+  sessionBId String
+  quality    EncounterQuality
+  occurredAt DateTime // Rounded to nearest minute for privacy
+  createdAt  DateTime         @default(now())
+
+  userA    User             @relation("EncounterUserA", fields: [userAId], references: [id])
+  userB    User             @relation("EncounterUserB", fields: [userBId], references: [id])
+  event    ProximityEvent   @relation(fields: [eventId], references: [id])
+  sessionA ProximitySession @relation("EncounterSessionA", fields: [sessionAId], references: [id])
+  sessionB ProximitySession @relation("EncounterSessionB", fields: [sessionBId], references: [id])
+  swipes   Swipe[]
+  match    Match?
+
+  @@unique([userAId, userBId, eventId])
+  @@index([userAId])
+  @@index([userBId])
+  @@index([eventId])
+  @@map("encounters")
+}
+
+// ─── Swipe / Match ───────────────────────────────────────────────────────────
+
+model Swipe {
+  id          String         @id @default(uuid())
+  swiperId    String
+  targetId    String
+  encounterId String
+  direction   SwipeDirection
+  createdAt   DateTime       @default(now())
+
+  swiper    User      @relation(fields: [swiperId], references: [id])
+  encounter Encounter @relation(fields: [encounterId], references: [id])
+  matchAsA  Match?    @relation("MatchSwipeA")
+  matchAsB  Match?    @relation("MatchSwipeB")
+
+  @@unique([swiperId, encounterId])
+  @@index([swiperId])
+  @@index([targetId])
+  @@index([encounterId])
+  @@map("swipes")
+}
+
+model Match {
+  id          String   @id @default(uuid())
+  userAId     String
+  userBId     String
+  encounterId String   @unique
+  swipeAId    String   @unique
+  swipeBId    String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  userA      User       @relation("MatchUserA", fields: [userAId], references: [id])
+  userB      User       @relation("MatchUserB", fields: [userBId], references: [id])
+  encounter  Encounter  @relation(fields: [encounterId], references: [id])
+  swipeA     Swipe      @relation("MatchSwipeA", fields: [swipeAId], references: [id])
+  swipeB     Swipe      @relation("MatchSwipeB", fields: [swipeBId], references: [id])
+  chatThread ChatThread?
+
+  @@index([userAId])
+  @@index([userBId])
+  @@map("matches")
+}
+
+// ─── Chat ────────────────────────────────────────────────────────────────────
+
+model ChatThread {
+  id            String    @id @default(uuid())
+  matchId       String    @unique
+  userAId       String
+  userBId       String
+  lastMessageAt DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  match    Match     @relation(fields: [matchId], references: [id])
+  userA    User      @relation("ChatThreadUserA", fields: [userAId], references: [id])
+  userB    User      @relation("ChatThreadUserB", fields: [userBId], references: [id])
+  messages Message[]
+
+  @@index([userAId])
+  @@index([userBId])
+  @@map("chat_threads")
+}
+
+model Message {
+  id        String      @id @default(uuid())
+  threadId  String
+  senderId  String
+  type      MessageType @default(TEXT)
+  content   String
+  readAt    DateTime?
+  createdAt DateTime    @default(now())
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User       @relation(fields: [senderId], references: [id])
+
+  @@index([threadId, createdAt])
+  @@index([senderId])
+  @@map("messages")
+}
+
+// ─── Moderation ──────────────────────────────────────────────────────────────
+
+model Report {
+  id          String       @id @default(uuid())
+  reporterId  String
+  reportedId  String
+  reason      ReportReason
+  description String?
+  status      ReportStatus @default(PENDING)
+  moderatorId String?
+  resolution  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime     @default(now())
+
+  reporter  User @relation("ReportReporter", fields: [reporterId], references: [id])
+  reported  User @relation("ReportReported", fields: [reportedId], references: [id])
+  moderator User? @relation("ReportModerator", fields: [moderatorId], references: [id])
+
+  @@index([reporterId])
+  @@index([reportedId])
+  @@index([status])
+  @@map("reports")
+}
+
+model Block {
+  id        String   @id @default(uuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("BlockBlocker", fields: [blockerId], references: [id])
+  blocked User @relation("BlockBlocked", fields: [blockedId], references: [id])
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+  @@map("blocks")
+}
+
+// ─── Subscription ────────────────────────────────────────────────────────────
+
+model Subscription {
+  id         String               @id @default(uuid())
+  userId     String               @unique
+  tier       SubscriptionTier     @default(FREE)
+  startsAt   DateTime
+  expiresAt  DateTime
+  isActive   Boolean              @default(true)
+  provider   SubscriptionProvider
+  externalId String?
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("subscriptions")
+}
