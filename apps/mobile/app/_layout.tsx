@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { View, Text, Platform } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useAuthStore } from '../src/stores/auth';
 import { Loading } from '../src/components/ui/Loading';
@@ -44,7 +45,12 @@ export default function RootLayout() {
   }, [isAuthenticated, isLoading, profile, segments]);
 
   if (isLoading) {
-    return <Loading message="Loading..." />;
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FF6B6B' }}>
+        <Text style={{ color: '#fff', fontSize: 32, fontWeight: '800' }}>Proximity</Text>
+        <Text style={{ color: '#fff', fontSize: 16, marginTop: 8 }}>Loading... (Platform: {Platform.OS})</Text>
+      </View>
+    );
   }
 
   return (
